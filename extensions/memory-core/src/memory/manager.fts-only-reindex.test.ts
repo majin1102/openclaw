@@ -9,12 +9,14 @@ import type { MemoryIndexMeta } from "./manager-reindex-state.js";
 import type { MemoryIndexManager } from "./manager.js";
 import "./test-runtime-mocks.js";
 
-vi.mock("./embeddings.js", () => ({
-  createEmbeddingProvider: async () => ({
-    requestedProvider: "auto",
-    provider: null,
-    providerUnavailableReason: "No embeddings provider available.",
+const embeddingProviderMock = vi.hoisted(() =>
+  vi.fn(async () => {
+    throw new Error("embedding provider should not initialize in FTS-only mode");
   }),
+);
+
+vi.mock("./embeddings.js", () => ({
+  createEmbeddingProvider: embeddingProviderMock,
   resolveEmbeddingProviderFallbackModel: () => "fts-only",
 }));
 
@@ -62,9 +64,10 @@ describe("memory manager FTS-only reindex", () => {
           memorySearch: {
             provider: "auto",
             model: "",
-            store: { path: indexPath },
+            store: { path: indexPath, fts: { tokenizer: "trigram" }, vector: { enabled: false } },
             cache: { enabled: false },
             sync: { watch: false, onSessionStart: false, onSearch: false },
+            query: { minScore: 0, hybrid: { enabled: true } },
           },
         },
         list: [{ id: "main", default: true }],
@@ -108,13 +111,18 @@ describe("memory manager FTS-only reindex", () => {
 
     await memoryManager.sync({ force: true });
     const firstStatus = memoryManager.status();
+    expect(firstStatus.fts).toEqual(expect.objectContaining({ enabled: true, available: true }));
+    expect(firstStatus.vector).toEqual(expect.objectContaining({ enabled: false }));
+    expect(firstStatus.custom?.searchMode).toBe("fts-only");
     expect(firstStatus.chunks).toBeGreaterThan(0);
     expect(countChunksContaining("Alpha topic")).toBeGreaterThan(0);
+    expect(embeddingProviderMock).not.toHaveBeenCalled();
 
     await memoryManager.sync({ force: true });
     const secondStatus = memoryManager.status();
     expect(secondStatus.chunks).toBeGreaterThan(0);
     expect(countChunksContaining("Alpha topic")).toBeGreaterThan(0);
+    expect(embeddingProviderMock).not.toHaveBeenCalled();
   });
 
   it("refreshes FTS-only indexed content after memory file updates", async () => {

@@ -745,7 +745,9 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
       return this.syncing;
     }
     this.syncing = (async () => {
-      await this.ensureProviderInitialized();
+      if (this.vector.enabled) {
+        await this.ensureProviderInitialized();
+      }
       await this.runSyncWithReadonlyRecovery(params);
     })().finally(() => {
       this.syncing = null;
@@ -878,6 +880,7 @@ export class MemoryIndexManager extends MemoryManagerEmbeddingOps implements Mem
       providerInitialized: this.providerInitialized,
       requestedProvider: this.requestedProvider,
       configuredModel: this.settings.model || undefined,
+      vectorEnabled: this.vector.enabled,
     });
 
     return {

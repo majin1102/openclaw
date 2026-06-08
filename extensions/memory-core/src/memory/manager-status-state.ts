@@ -36,6 +36,7 @@ export function resolveStatusProviderInfo(params: {
   providerInitialized: boolean;
   requestedProvider: string;
   configuredModel?: string;
+  vectorEnabled: boolean;
 }): {
   provider: string;
   model?: string;
@@ -52,6 +53,13 @@ export function resolveStatusProviderInfo(params: {
     return {
       provider: "none",
       model: undefined,
+      searchMode: "fts-only",
+    };
+  }
+  if (!params.vectorEnabled) {
+    return {
+      provider: params.requestedProvider,
+      model: params.configuredModel || undefined,
       searchMode: "fts-only",
     };
   }

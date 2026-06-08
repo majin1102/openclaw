@@ -35,6 +35,7 @@ describe("memory manager status state", () => {
         providerInitialized: false,
         requestedProvider: "openai",
         configuredModel: "mock-embed",
+        vectorEnabled: true,
       }),
     ).toEqual({
       provider: "openai",
@@ -50,10 +51,27 @@ describe("memory manager status state", () => {
         providerInitialized: true,
         requestedProvider: "openai",
         configuredModel: "mock-embed",
+        vectorEnabled: true,
       }),
     ).toEqual({
       provider: "none",
       model: undefined,
+      searchMode: "fts-only",
+    });
+  });
+
+  it("reports fts-only mode before provider initialization when vector search is disabled", () => {
+    expect(
+      resolveStatusProviderInfo({
+        provider: null,
+        providerInitialized: false,
+        requestedProvider: "openai",
+        configuredModel: "mock-embed",
+        vectorEnabled: false,
+      }),
+    ).toEqual({
+      provider: "openai",
+      model: "mock-embed",
       searchMode: "fts-only",
     });
   });
